@@ -9,6 +9,7 @@ class Client(object):
         self.addr = addr
         self.event_num = 0
         self.client_number = 1
+        self.job = []
         assign_client_num = 1
         self.in_critical_section = False
         self.reply_num = 0
@@ -37,19 +38,26 @@ class Client(object):
                     self.reply(data,client)
                 elif data[2] == "reply":
                     self.reply_num += 1
-                    print("Received reply: {}".format(self.reply_num))
-                    if (self.reply_num == 2):
+                    if (self.reply_num == len(self.clients)):
                         print("All replies received, transcation started")
                         self.in_critical_section = True
                         self.reply_num = 0
                         #start transaction
-                        print("balance ", self.check_balance(1))
+                        self.event_num += 1
+                        if self.job[1] == "balance":
+                            res = "Balance: "
+                            res += str(self.check_balance(1))
+                        else:
+                            res = "Transaction: "
+                            res = self.start_transaction(1,int(self.job[1].split(' ')[1]),int(self.job[1].split(' ')[2]))
+                        print(res)
                         self.in_critical_section = False
+                        self.job = []
                 elif data[2] == "balance":
                     balance = self.check_balance(int(data[1]))
                     self.event_num += 1
                     self.clientSocket.sendto("{} {} balance {}".format(self.event_num, self.client_number, balance).encode(), client)
-                elif data[2] == "transaction":
+                elif data[2] == "transfer":
                     res = self.start_transaction(int(data[1]), int(data[3]), int(data[4]))
                     self.event_num += 1
                     self.clientSocket.sendto("{} {} transaction {}".format(self.event_num, self.client_number, res).encode(), client)
@@ -82,8 +90,8 @@ class Client(object):
         sg.theme('DarkAmber')   # Add a touch of color
         # All the stuff inside your window.
         layout = [  [sg.Button('Check balance')],
-                    [sg.Text('Transfer: '), sg.InputText()],
-                    [sg.Text('Amount: '), sg.InputText()],
+                    [sg.Text('Transfer: '), sg.InputText(do_not_clear=False), ],
+                    [sg.Text('Amount: '), sg.InputText(do_not_clear=False)],
                     [sg.Button('Submit'), sg.Button('Cancel')] ]
 
         # Create the Window
@@ -95,12 +103,13 @@ class Client(object):
                 break
             if event == 'Check balance':
                 self.event_num += 1
+                self.job = ["{} {}".format(self.event_num, self.client_number),"balance"]
                 for client in self.clients:
                     print("Message sent to client {}".format(self.clients[client]))
                     self.clientSocket.sendto("{} {} request balance".format(self.event_num,str(self.client_number)).encode(), client)
-
             else:
                 self.event_num += 1
+                self.job = ["{} {}".format(self.event_num, self.client_number),"transfer {} {}".format(values[0],values[1])]
                 for client in self.clients:
                     print("Message sent to client {}".format(self.clients[client]))
                     self.clientSocket.sendto("{} {} request transaction".format(self.event_num,str(self.client_number)).encode(), client)

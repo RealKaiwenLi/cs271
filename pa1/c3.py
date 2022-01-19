@@ -8,6 +8,7 @@ class Client(object):
     def __init__(self):
         self.event_num = 0
         self.client_number = 1
+        self.job = []
         self.in_critical_section = False
         self.reply_num = 0
         self.clients = {}
@@ -49,8 +50,9 @@ class Client(object):
                         self.reply_num = 0
                         #start transaction
                         self.event_num += 1
-                        self.clientSocket.sendto("{} {} transaction 1 5".format(self.event_num,str(self.client_number)).encode(), self.server)
+                        self.clientSocket.sendto("{} {} {}".format(self.event_num,str(self.client_number), self.job[1]).encode(), self.server)
                         self.in_critical_section = False
+                        self.job = []
 
     def reply(self,data, client):
         req = data
@@ -68,8 +70,8 @@ class Client(object):
         sg.theme('DarkAmber')   # Add a touch of color
         # All the stuff inside your window.
         layout = [  [sg.Button('Check balance')],
-                    [sg.Text('Transfer: '), sg.InputText()],
-                    [sg.Text('Amount: '), sg.InputText()],
+                    [sg.Text('Transfer: '), sg.InputText(do_not_clear=False), ],
+                    [sg.Text('Amount: '), sg.InputText(do_not_clear=False)],
                     [sg.Button('Submit'), sg.Button('Cancel')] ]
 
         # Create the Window
@@ -81,14 +83,16 @@ class Client(object):
                 break
             if event == 'Check balance':
                 self.event_num += 1
+                self.job = ["{} {}".format(self.event_num, self.client_number),"balance"]
                 for client in self.clients:
                     print("Message sent to client {}".format(self.clients[client]))
                     self.clientSocket.sendto("{} {} request balance".format(self.event_num,str(self.client_number)).encode(), client)
             else:
                 self.event_num += 1
+                self.job = ["{} {}".format(self.event_num, self.client_number),"transfer {} {}".format(values[0],values[1])]
                 for client in self.clients:
                     print("Message sent to client {}".format(self.clients[client]))
-                    self.clientSocket.sendto("{} {} request transaction".format(self.event_num,str(self.client_number)).encode(), client)   
+                    self.clientSocket.sendto("{} {} request transaction".format(self.event_num,str(self.client_number)).encode(), client)
 
         window.close()
 
