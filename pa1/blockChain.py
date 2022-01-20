@@ -36,9 +36,10 @@ class Blockchain:
             return "Failed"
         
     def Show(self):
+        print("Current blockchain:")
         temp = self.genesis.next
         while temp:
-                print(temp.S + " ", temp.R + " "+  str(temp.prevHash) )
+                print(str(temp.S) + " ", str(temp.R) + " "+  str(temp.prevHash) )
                 temp = temp.next
                 
                 

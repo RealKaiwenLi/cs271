@@ -10,22 +10,23 @@ class Client(object):
         self.event_num = 0
         self.client_number = 1
         self.job = []
-        assign_client_num = 1
+        assign_client_num = 0
         self.in_critical_section = False
         self.reply_num = 0
         self.clients = {}
+        self.queue = []
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.clientSocket.bind(self.addr)
         self.blockchain = blockChain.Blockchain()
         total_clients = 3
-        for i in range(total_clients - 1):
+        for i in range(total_clients):
             data, client = self.clientSocket.recvfrom(1024)
             assign_client_num += 1
             print("Client {} connected:".format(assign_client_num), client)
             client_info = str(assign_client_num) + "|" + str(total_clients-assign_client_num) + "|" + str(self.clients)
             self.clientSocket.sendto(client_info.encode(), client)
             self.clients[client] = assign_client_num
-        # print(self.clients)
+            print(self.clients)
 
     def recv(self):
         while True:
@@ -64,14 +65,13 @@ class Client(object):
                     
     def check_balance(self, id):
         balance = self.blockchain.balance(id)
-        time.sleep(5)
         return balance
     
     def start_transaction(self, from_id, to_id, amount):
         res = self.blockchain.insert(from_id, to_id, amount)
-        if res == "succeed":
-            print("Current blockchain:")
-            self.blockchain.Show()
+        # if res == "Succeed":
+        #     print("Current blockchain:")
+        #     self.blockchain.Show()
         return res
 
     def reply(self,data, client):
@@ -89,30 +89,17 @@ class Client(object):
     def startGUI(self):
         sg.theme('DarkAmber')   # Add a touch of color
         # All the stuff inside your window.
-        layout = [  [sg.Button('Check balance')],
-                    [sg.Text('Transfer: '), sg.InputText(do_not_clear=False), ],
-                    [sg.Text('Amount: '), sg.InputText(do_not_clear=False)],
-                    [sg.Button('Submit'), sg.Button('Cancel')] ]
+        layout = [  [sg.Button('Print')]]
 
         # Create the Window
-        window = sg.Window('Client {}'.format(self.client_number), layout)
+        window = sg.Window('BlockChain Master'.format(self.client_number), layout)
         # Event Loop to process "events" and get the "values" of the inputs
         while True:
             event, values = window.read()
             if event == sg.WIN_CLOSED or event == 'Cancel': # if user closes window or clicks cancel
                 break
-            if event == 'Check balance':
-                self.event_num += 1
-                self.job = ["{} {}".format(self.event_num, self.client_number),"balance"]
-                for client in self.clients:
-                    print("Message sent to client {}".format(self.clients[client]))
-                    self.clientSocket.sendto("{} {} request balance".format(self.event_num,str(self.client_number)).encode(), client)
-            else:
-                self.event_num += 1
-                self.job = ["{} {}".format(self.event_num, self.client_number),"transfer {} {}".format(values[0],values[1])]
-                for client in self.clients:
-                    print("Message sent to client {}".format(self.clients[client]))
-                    self.clientSocket.sendto("{} {} request transaction".format(self.event_num,str(self.client_number)).encode(), client)
+            if event == 'Print':
+                self.blockchain.Show()
 
         window.close()
 
