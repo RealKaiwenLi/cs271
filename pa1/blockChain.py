@@ -31,9 +31,9 @@ class Blockchain:
             Hash = self.getTheHash(temp.S,temp.R,temp.amt,temp.prevHash)
             newBlock = Block(sender,rec,amt,Hash)
             temp.next = newBlock
-            return "Succeed"
+            return "SUCCESS"
         else:
-            return "Failed"
+            return "INCORRECT"
         
     def Show(self):
         print("Current blockchain:")

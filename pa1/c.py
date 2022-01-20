@@ -65,7 +65,7 @@ class Client(object):
                         # print(self.queue)
                     else:
                         if int(data[3]) < int(job[5]):
-                            self.display("Incorrect")
+                            self.display("INCORRECT")
                             self.in_critical_section = False
                         else:
                             self.event_num += 1

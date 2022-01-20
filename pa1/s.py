@@ -26,7 +26,7 @@ class Client(object):
             client_info = str(assign_client_num) + "|" + str(total_clients-assign_client_num) + "|" + str(self.clients)
             self.clientSocket.sendto(client_info.encode(), client)
             self.clients[client] = assign_client_num
-            print(self.clients)
+            # print(self.clients)
 
     def recv(self):
         while True:
@@ -37,23 +37,23 @@ class Client(object):
                 if data[2] == "request":
                     #check queue
                     self.reply(data,client)
-                elif data[2] == "reply":
-                    self.reply_num += 1
-                    if (self.reply_num == len(self.clients)):
-                        print("All replies received, transcation started")
-                        self.in_critical_section = True
-                        self.reply_num = 0
-                        #start transaction
-                        self.event_num += 1
-                        if self.job[1] == "balance":
-                            res = "Balance: "
-                            res += str(self.check_balance(1))
-                        else:
-                            res = "Transaction: "
-                            res = self.start_transaction(1,int(self.job[1].split(' ')[1]),int(self.job[1].split(' ')[2]))
-                        print(res)
-                        self.in_critical_section = False
-                        self.job = []
+                # elif data[2] == "reply":
+                #     self.reply_num += 1
+                #     if (self.reply_num == len(self.clients)):
+                #         print("All replies received, transcation started")
+                #         self.in_critical_section = True
+                #         self.reply_num = 0
+                #         #start transaction
+                #         self.event_num += 1
+                #         if self.job[1] == "balance":
+                #             res = "Balance: "
+                #             res += str(self.check_balance(1))
+                #         else:
+                #             res = "Transaction: "
+                #             res += self.start_transaction(1,int(self.job[1].split(' ')[1]),int(self.job[1].split(' ')[2]))
+                #         print(res)
+                #         self.in_critical_section = False
+                #         self.job = []
                 elif data[2] == "balance":
                     balance = self.check_balance(int(data[1]))
                     self.event_num += 1
@@ -69,9 +69,6 @@ class Client(object):
     
     def start_transaction(self, from_id, to_id, amount):
         res = self.blockchain.insert(from_id, to_id, amount)
-        # if res == "Succeed":
-        #     print("Current blockchain:")
-        #     self.blockchain.Show()
         return res
 
     def reply(self,data, client):
