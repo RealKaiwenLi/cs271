@@ -92,7 +92,7 @@ class Client(object):
         layout = [  [sg.Button('Print')]]
 
         # Create the Window
-        window = sg.Window('BlockChain Master'.format(self.client_number), layout)
+        window = sg.Window('BlockChain Master'.format(self.client_number), layout, size=(250, 100))
         # Event Loop to process "events" and get the "values" of the inputs
         while True:
             event, values = window.read()
