@@ -104,6 +104,6 @@ class Client(object):
         window.close()
 
 if __name__ == '__main__':
-    print("Client 1 started")
+    print("Server started")
     client = Client(('127.0.0.1', 4000))
     client.start()
