@@ -16,25 +16,25 @@ class Client(object):
         self.clients = {}
         self.queue = []
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.server = ('0.0.0.0', 4000)
+        self.server = ('127.0.0.1', 4000)
         self.clientSocket.sendto("I am a new client".encode(), self.server)
         data, client = self.clientSocket.recvfrom(1024)
         print("Server connected:", client)
         # print(data.decode())
-        data = data.decode().split("|")
-        self.client_number = int(data[0])
-        clients = ast.literal_eval(data[2])
+        datas = data.decode().split("|")
+        self.client_number = int(datas[0])
+        clients = ast.literal_eval(datas[2])
         for client in clients:
             self.clients[client] = clients[client]
             self.clientSocket.sendto("I am client {}".format(self.client_number).encode(), client)
             print("Client {} connected:".format(self.clients[client]), client)
-        for i in range(int(data[1])):
+        for i in range(int(datas[1])):
             data, client = self.clientSocket.recvfrom(1024)
+            print(data.decode())
             client_num = data.decode().split(" ")[3]
             print("Client {} connected: ".format(client_num), client)
             self.clients[client] = int(client_num)
-        # print(self.clients)
-        print("Initial Balance: {}".format(self.balance))
+        print("Initial Balance: {}".format(datas[3]))
     
     def recv(self):
         while True:
@@ -67,6 +67,10 @@ class Client(object):
                     else:
                         if int(data[3]) < int(job[5]):
                             self.display("INCORRECT")
+                            self.queue.pop(0)
+                            self.event_num += 1
+                            message = "{} {} release".format(self.event_num,str(self.client_number)).encode()
+                            self.send_all(message)
                             self.in_critical_section = False
                         else:
                             self.event_num += 1
@@ -141,10 +145,13 @@ class Client(object):
                 self.append_queue(message.split(' '), self.client_number)
                 self.send_all(message.encode())
             else:
-                self.event_num += 1
-                message = "{} {} request transaction {} {}".format(self.event_num,self.client_number,values[0],values[1])
-                self.append_queue(message.split(' '), self.client_number)
-                self.send_all(message.encode())
+                if int(values[0]) == int(self.client_number) or int(values[0]) > len(self.clients)+1 or int(values[0]) <= 0:
+                    self.display("INVALID CLIENT NUMBER")
+                else:
+                    self.event_num += 1
+                    message = "{} {} request transaction {} {}".format(self.event_num,self.client_number,values[0],values[1])
+                    self.append_queue(message.split(' '), self.client_number)
+                    self.send_all(message.encode())
 
         window.close()
 

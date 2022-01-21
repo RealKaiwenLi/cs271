@@ -18,8 +18,8 @@ class Client(object):
         for i in range(total_clients):
             data, client = self.clientSocket.recvfrom(1024)
             assign_client_num += 1
-            print("Client {} connected:".format(assign_client_num), client)
-            client_info = str(assign_client_num) + "|" + str(total_clients-assign_client_num) + "|" + str(self.clients)
+            print("Client {} connected: {}\nInitial balance: 10".format(assign_client_num, client))
+            client_info = str(assign_client_num) + "|" + str(total_clients-assign_client_num) + "|" + str(self.clients) + "|" + str(10) + "|"
             self.clientSocket.sendto(client_info.encode(), client)
             self.clients[client] = assign_client_num
             # print(self.clients)
