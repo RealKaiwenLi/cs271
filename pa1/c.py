@@ -66,13 +66,14 @@ class Client(object):
                         # print(self.queue)
                     else:
                         if int(data[3]) < int(job[5]):
-                            self.display("INCORRECT")
+                            self.display("INCORRECT, your balance is {}".format(data[3]))
                             self.queue.pop(0)
                             self.event_num += 1
                             message = "{} {} release".format(self.event_num,str(self.client_number)).encode()
                             self.send_all(message)
                             self.in_critical_section = False
                         else:
+                            print("Your balance is {}".format(data[3]))
                             self.event_num += 1
                             self.send("{} {} transfer {} {}".format(self.event_num,self.client_number ,self.queue[0][2][4],self.queue[0][2][5]).encode(), self.server)
                 elif data[2] == "transaction":
@@ -82,6 +83,7 @@ class Client(object):
                     message = "{} {} release".format(self.event_num,str(self.client_number)).encode()
                     self.send_all(message)
                     self.in_critical_section = False
+                    print("Your balance is {}".format(self.balance))
                     # print(self.queue)
                 
                 if self.reply_num == len(self.clients) and self.queue[0][1] == self.client_number and not self.in_critical_section:
