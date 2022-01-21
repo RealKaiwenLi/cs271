@@ -9,10 +9,7 @@ class Client(object):
         self.addr = addr
         self.event_num = 0
         self.client_number = 1
-        # self.job = []
         assign_client_num = 0
-        # self.in_critical_section = False
-        # self.reply_num = 0
         self.clients = {}
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.clientSocket.bind(self.addr)
@@ -36,23 +33,6 @@ class Client(object):
                 if data[2] == "request":
                     #check queue
                     self.reply(data,client)
-                # elif data[2] == "reply":
-                #     self.reply_num += 1
-                #     if (self.reply_num == len(self.clients)):
-                #         print("All replies received, transcation started")
-                #         self.in_critical_section = True
-                #         self.reply_num = 0
-                #         #start transaction
-                #         self.event_num += 1
-                #         if self.job[1] == "balance":
-                #             res = "Balance: "
-                #             res += str(self.check_balance(1))
-                #         else:
-                #             res = "Transaction: "
-                #             res += self.start_transaction(1,int(self.job[1].split(' ')[1]),int(self.job[1].split(' ')[2]))
-                #         print(res)
-                #         self.in_critical_section = False
-                #         self.job = []
                 elif data[2] == "balance":
                     balance = self.check_balance(int(data[1]))
                     self.event_num += 1

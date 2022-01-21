@@ -34,6 +34,7 @@ class Client(object):
             print("Client {} connected: ".format(client_num), client)
             self.clients[client] = int(client_num)
         # print(self.clients)
+        print("Initial Balance: {}".format(self.balance))
     
     def recv(self):
         while True:
