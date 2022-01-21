@@ -9,12 +9,11 @@ class Client(object):
         self.addr = addr
         self.event_num = 0
         self.client_number = 1
-        self.job = []
+        # self.job = []
         assign_client_num = 0
-        self.in_critical_section = False
-        self.reply_num = 0
+        # self.in_critical_section = False
+        # self.reply_num = 0
         self.clients = {}
-        self.queue = []
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.clientSocket.bind(self.addr)
         self.blockchain = blockChain.Blockchain()
@@ -76,8 +75,7 @@ class Client(object):
         self.event_num = max(self.event_num,int(req[0]))
         print("New event number: {}".format(self.event_num))
         self.event_num += 1
-        if not self.in_critical_section:
-            self.clientSocket.sendto('{} {} reply {} '.format(self.event_num, self.client_number, req[1]).encode(), client)
+        self.clientSocket.sendto('{} {} reply {} '.format(self.event_num, self.client_number, req[1]).encode(), client)
     
     def start(self):
         start_new_thread(self.recv, ())

@@ -39,7 +39,7 @@ class Blockchain:
         print("Current blockchain:")
         temp = self.genesis.next
         while temp:
-                print(str(temp.S) + " ", str(temp.R) + " "+  str(temp.prevHash) )
+                print("Sender: {} Reciever: {} Amount: {} PreiousHash: {}".format(temp.S,temp.R,temp.amt, temp.prevHash))
                 temp = temp.next
                 
                 
