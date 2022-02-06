@@ -152,10 +152,6 @@ if __name__ == "__main__":
     print(f'The client name is "{clientName}"')
     c1 = myClient(clientName, '127.0.0.1', thePorts[clientName])
     c1.Connect_to_older_clients()
-    c1.recv_marker('B', 'C')
-    sleep(1)
-    c1.append_message('D', 'hello')
-    c1.recv_marker('D', 'C')
     #Waiting to get connection from other clients, we can terminate
     #this while loop when all connections are sat up
     
