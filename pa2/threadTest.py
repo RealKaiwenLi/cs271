@@ -3,6 +3,8 @@ import time
 import socket
 import os
 import sys
+from copy import deepcopy
+from time import sleep
 
 class myClient:
     def __init__(self, clientName, clientIP, clientPort) -> None:
@@ -13,7 +15,26 @@ class myClient:
         self.ServerSocket = socket.socket()
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444}
         self.clinetIPs = {'A': '127.0.0.1', 'B': '127.0.0.1', 'C': '127.0.0.1', 'D': '127.0.0.1'}
-
+        self.channel = {
+                                    'A': {'B':False, 'D':False},
+                                    'B': {'A':False,'D':False},
+                                    'C': {'D':False},
+                                    'D': {'B':False}
+                                }
+        self.incoming_channel = {
+                                    'A': deepcopy(self.channel[self.name]),
+                                    'B': deepcopy(self.channel[self.name]), 
+                                    'C': deepcopy(self.channel[self.name]), 
+                                    'D': deepcopy(self.channel[self.name])
+                                }
+        self.marker_num = {'A': 0,'B': 0,'C': 0,'D': 0}
+        self.balance = 10
+        self.state = {
+                        'A':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}},
+                        'B':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}},
+                        'C':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}},
+                        'D':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}}
+                    }
         try:
             self.ServerSocket.bind((self.host, self.port))
         except socket.error as e:
@@ -71,7 +92,54 @@ class myClient:
         pass
 
 
+    #save the current state of the client
+    def save_state(self, initiator):
+        self.state[initiator]['balance'] = self.balance
 
+    #initiate the snapshot
+    def init_snapshot(self):
+        self.save_state(self.name)
+        #send marker to all outgoing channels with initiator
+
+        #start recording on all incoming channels
+        self.incoming_channel[self.name] = {x:True for x in self.channel[self.name]}
+        
+    # handle the state when receving a marker
+    def recv_marker(self, sender, initiator):
+        if self.marker_num[initiator] == 0 and initiator != self.name:
+            #save local state for this initiator
+            self.save_state(initiator)
+            #send marker to all outgoing channels with initiator
+
+            self.marker_num[initiator] += 1
+            #mark channel c is empty
+            channel_name = sender + self.name
+            self.state[initiator]['channels'][channel_name] = []
+            #saving mess on all other incoming channels
+            self.incoming_channel[initiator] = {x:True for x in self.channel[self.name]}
+            self.incoming_channel[initiator][sender] = False
+        else:
+            #stop saving on that channel
+            self.incoming_channel[self.name][sender] = False
+            self.marker_num[initiator] += 1
+        #if it receivers all markers
+        if self.marker_num[initiator] == len(self.channel[self.name]):
+            #send the state to initiator
+
+            #reset marker_num
+            self.marker_num[initiator] = 0
+            #reset state
+            self.state[initiator] = {'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}}
+
+    #append the message to state if recording
+    def append_message(self, sender, msg):
+        print(self.incoming_channel)
+        channel_name = sender + self.name
+        for initiator,values in self.incoming_channel.items():
+            for channel,value in values.items():
+                print(initiator, channel, value)
+                if channel == sender and value == True:
+                    self.state[initiator]['channels'][channel_name].append(msg)
     
 if __name__ == "__main__":
      
