@@ -121,7 +121,7 @@ class myClient:
             self.state[initiator]['channels'][channel_name] = []
             #saving mess on all other incoming channels
             self.incoming_channel[initiator] = {x:True for x in self.channel[self.name]}
-            self.incoming_channel[initiator][sender+self.name] = False
+            self.incoming_channel[initiator][channel_name] = False
         else:
             #stop saving on that channel
             self.incoming_channel[initiator][sender+self.name] = False
