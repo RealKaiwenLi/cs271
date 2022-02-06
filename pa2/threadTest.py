@@ -16,24 +16,28 @@ class myClient:
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444}
         self.clinetIPs = {'A': '127.0.0.1', 'B': '127.0.0.1', 'C': '127.0.0.1', 'D': '127.0.0.1'}
         self.channel = {
-                                    'A': {'B':False, 'D':False},
-                                    'B': {'A':False,'D':False},
-                                    'C': {'D':False},
-                                    'D': {'B':False}
+                                    'A': {'BA':False, 'DA':False},
+                                    'B': {'AB':False,'DB':False},
+                                    'C': {'DC':False},
+                                    'D': {'BD':False}
                                 }
+        #sample for client A: {'A': {'BA': False, 'DA': False}, 'B': {'BA': False, 'DA': False}, 'C': {'BA': False, 'DA': False}, 'D': {'BA': False, 'DA': False}}
+        #incoming_channel[A][BA] = True means channel BA is recording for the snapshot A. If a message is received on channel BA, it will be appended to state[A]['channels']['BA']
         self.incoming_channel = {
                                     'A': deepcopy(self.channel[self.name]),
                                     'B': deepcopy(self.channel[self.name]), 
                                     'C': deepcopy(self.channel[self.name]), 
                                     'D': deepcopy(self.channel[self.name])
                                 }
+        # marker_num[A] represents the number of markers received for the snapshot initiated by A
         self.marker_num = {'A': 0,'B': 0,'C': 0,'D': 0}
         self.balance = 10
+        #state[A] represents the snapshot record initiated by A
         self.state = {
-                        'A':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}},
-                        'B':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}},
-                        'C':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}},
-                        'D':{'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}}
+                        'A':{'balance': 10, 'channels': {x:[] for x in self.channel[self.name]}},
+                        'B':{'balance': 10, 'channels': {x:[] for x in self.channel[self.name]}},
+                        'C':{'balance': 10, 'channels': {x:[] for x in self.channel[self.name]}},
+                        'D':{'balance': 10, 'channels': {x:[] for x in self.channel[self.name]}}
                     }
         try:
             self.ServerSocket.bind((self.host, self.port))
@@ -117,13 +121,15 @@ class myClient:
             self.state[initiator]['channels'][channel_name] = []
             #saving mess on all other incoming channels
             self.incoming_channel[initiator] = {x:True for x in self.channel[self.name]}
-            self.incoming_channel[initiator][sender] = False
+            self.incoming_channel[initiator][sender+self.name] = False
         else:
             #stop saving on that channel
-            self.incoming_channel[self.name][sender] = False
+            self.incoming_channel[initiator][sender+self.name] = False
             self.marker_num[initiator] += 1
         #if it receivers all markers
         if self.marker_num[initiator] == len(self.channel[self.name]):
+            print(self.incoming_channel)
+            print(self.state)
             #send the state to initiator
 
             #reset marker_num
@@ -133,12 +139,10 @@ class myClient:
 
     #append the message to state if recording
     def append_message(self, sender, msg):
-        print(self.incoming_channel)
         channel_name = sender + self.name
         for initiator,values in self.incoming_channel.items():
             for channel,value in values.items():
-                print(initiator, channel, value)
-                if channel == sender and value == True:
+                if channel == channel_name and value == True:
                     self.state[initiator]['channels'][channel_name].append(msg)
     
 if __name__ == "__main__":
@@ -148,7 +152,10 @@ if __name__ == "__main__":
     print(f'The client name is "{clientName}"')
     c1 = myClient(clientName, '127.0.0.1', thePorts[clientName])
     c1.Connect_to_older_clients()
-    
+    c1.recv_marker('B', 'C')
+    sleep(1)
+    c1.append_message('D', 'hello')
+    c1.recv_marker('D', 'C')
     #Waiting to get connection from other clients, we can terminate
     #this while loop when all connections are sat up
     
