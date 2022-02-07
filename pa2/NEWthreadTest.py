@@ -8,6 +8,7 @@ import sys
 from copy import deepcopy
 from time import sleep
 import PySimpleGUI as sg
+import json
 
 class myClient:
     def __init__(self, clientName, clientIP, clientPort) -> None:
@@ -19,14 +20,14 @@ class myClient:
         self.broadcast_flag = False
         self.broadcast_msg = ""
         self.outgoing_channels_flag = False
-        self.ServerSocket = socket.socket() 
+        self.ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444}
         self.clinetIPs = {'A': '127.0.0.1', 'B': '127.0.0.1', 'C': '127.0.0.1', 'D': '127.0.0.1'}
         self.clientSocekt={'A':0, 'B': 0, 'C':0 , 'D':0}
         self.outgoing_channels = {'A':['B'] , 'B':['A','D'] , 'C':['B'], 'D':['A','B','C']}
         self.channel = {
                                     'A': {'BA':False, 'DA':False},
-                                    'B': {'AB':False,'DB':False},
+                                    'B': {'AB':False, 'CB': False, 'DB':False},
                                     'C': {'DC':False},
                                     'D': {'BD':False}
                                 }
@@ -52,10 +53,6 @@ class myClient:
             self.ServerSocket.bind((self.host, self.port))
         except socket.error as e:
             print(str(e))
-
-
-        print('Waitiing for a Connection..')
-        self.ServerSocket.listen(5) 
 
 
     
@@ -118,47 +115,37 @@ class myClient:
         
         for item in self.clientPorts:
             if item != self.name:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.sendto(str.encode(msg), (self.clinetIPs[item], self.clientPorts[item]))
+                self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs[item], self.clientPorts[item]))
                 
     def listen_to_all(self):
         print(f'client {self.name} is listening now')
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-        sock.bind((self.clinetIPs[self.name], self.clientPorts[self.name]))
  
         while True:
-            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+            data, addr = self.ServerSocket.recvfrom(1024) # buffer size is 1024 bytes
             print(data.decode('utf-8'))
             message_type = data.decode('utf-8').split()
+            sender = self.get_client(int(addr[1]))
             if(message_type[0] == "Transfer"):
-                #call append_message
+                self.append_message(sender, data.decode('utf-8'))
                 self.balance += int(message_type[1])
-            elif message_type == "MARKER":
-                #call recv_marker
+            elif message_type[0] == "MARKER":
+                self.recv_marker(sender, message_type[1])
+                pass
+            else:
+                # print(data.decode('utf-8'))
                 pass
 
         
     
     def send_direct_msg(self, msg, receiver):
-    
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto(str.encode(msg), (self.clinetIPs[receiver], self.clientPorts[receiver]))
+        sleep(3)
+        self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs[receiver], self.clientPorts[receiver]))
 
     def send_outgoing_channels(self, msg):
+        sleep(3)
         des = self.outgoing_channels[self.name]
         for item in des:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.sendto(str.encode(msg), (self.clinetIPs[item], self.clientPorts[item]))
-
-
-    # def listening (self, soc):
-    #     while True:
-    #         data = soc.recv(2048)
-    #         reply = 'The server ' + clientName + " says: "+  data.decode('utf-8') + " The great"
-    #         if not data:
-    #             break
-    #         soc.sendall(str.encode(reply))
-
+                self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs[item], self.clientPorts[item]))
 
     #save the current state of the client
     def save_state(self, initiator):
@@ -169,10 +156,15 @@ class myClient:
         self.save_state(self.name)
         #send marker to all outgoing channels with initiator
         #TODO --> broadcast to all outgoing channel send a string "MARKER self.name"
-        self.broadcast_to_all("MARKER " + self.name)
+        self.send_outgoing_channels("MARKER " + self.name)
         #start recording on all incoming channel
         self.incoming_channel[self.name] = {x:True for x in self.channel[self.name]}
         
+    def get_client(self,val):
+        for key, value in self.clientPorts.items():
+            if val == value:
+                return key
+    
     # handle the state when receving a marker
     def recv_marker(self, sender, initiator):
         if self.marker_num[initiator] == 0 and initiator != self.name:
@@ -193,15 +185,15 @@ class myClient:
             self.marker_num[initiator] += 1
         #if it receivers all markers
         if self.marker_num[initiator] == len(self.channel[self.name]):
-            print(self.incoming_channel)
-            print(self.state)
+            print('ALl marker received')
             #send the state to initiator. self.state[initiator]
             #TODO : send above value to the initiator of snapshot
-            self.send_direct_msg(self.state[initiator], initiator)
+            state_message = json.dumps(self.state[initiator])
+            self.send_direct_msg(self.name + ': ' + state_message, initiator)
             #reset marker_num
             self.marker_num[initiator] = 0
             #reset state
-            self.state[initiator] = {'balance': 10, 'channels': {x+self.name:[] for x in self.channel[self.name]}}
+            self.state[initiator] = {'balance': 10, 'channels': {x:[] for x in self.channel[self.name]}}
 
     #append the message to state if recording
     def append_message(self, sender, msg):
@@ -236,12 +228,14 @@ class myClient:
                 TheReceiver = values[0]
                 amount = int(values[1])
                 if TheReceiver in self.outgoing_channels[self.name]:
-                    if(amount > 0 or amount < self.balance):
+                    if(amount > 0 and amount < self.balance):
+                        self.balance -= amount
                         self.send_direct_msg("Transfer " + str(amount), TheReceiver)
+                        print("Success")
                     else:
-                        print("The amount of money you want ot transfer is invalid")
+                        print("Incorrect")
                 else:
-                    print("Not connected to that client for money transfer")
+                    print("Incorrect")
                
 
         window.close()
