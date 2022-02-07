@@ -131,8 +131,10 @@ class myClient:
             print(data.decode('utf-8'))
             message_type = data.decode('utf-8').split()
             if(message_type[0] == "Transfer"):
+                #call append_message
                 self.balance += int(message_type[1])
             elif message_type == "MARKER":
+                #call recv_marker
                 pass
 
         
