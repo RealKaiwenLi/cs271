@@ -54,63 +54,6 @@ class myClient:
         except socket.error as e:
             print(str(e))
 
-
-    
-    # def get_connection(self,connection):
- 
-    #     connection.send(str.encode('Welcome to the Server'))
-    #     while True:
-    #         data = connection.recv(2048)
-    #         reply = 'The server in threadTest Says: ' + data.decode('utf-8') + "The great"
-    #         if not data:
-    #             break
-    #         connection.sendall(str.encode(reply))
-    #     connection.close()
-
-    # def initiate_connection(self, host, port):
-    #     ClientSocket = socket.socket()
-    #     print('Waiting for connection')
-    #     try:
-    #         ClientSocket.connect((host, port))
-    #     except socket.error as e:
-    #         print(str(e))
-        
-    #     return ClientSocket
-        #Response = ClientSocket.recv(1024)
-        # currentClient = True
-       
-        # while True:
-        #     # Input = input(f'Say Something to {port} \n')
-        #     if self.broadcast_flag == True:
-        #         if currentClient == True:
-        #             #send the message for this round 
-        #             print("entered broadcast flag == true")
-        #             ClientSocket.send(str.encode(self.broadcast_msg))
-        #             currentClient = False
-                    
-        #     else:
-        #         currentClient = True
-        #         print("current client true again")
-            
-    
-        #     Response = ClientSocket.recv(1024)
-        #     print(Response.decode('utf-8'))
-                
-
-        # ClientSocket.close()
-
-    def Connect_to_older_clients(self):
-        src = ord(self.name)
-        des = 65
-        while des != src :
-            
-            desName = chr(des)
-            desIP = self.clinetIPs[desName]
-            desPort = self.clientPorts[desName]
-            print(f'connection from {self.name} to {desName} on {desIP}:{desPort} ')
-            self.clientSocekt[desName] = self.initiate_connection(desIP,desPort)
-            des+=1
-
     def broadcast_to_all(self, msg):
         
         for item in self.clientPorts:
@@ -248,39 +191,7 @@ if __name__ == "__main__":
     c1 = myClient(clientName, '127.0.0.1', thePorts[clientName])
     start_new_thread(c1.listen_to_all,())
 
-    time.sleep(2)
-
-    # c1.send_outgoing_channels("A message from:" + c1.name )
     
-
-
-    
-    # c1.Connect_to_older_clients()
-    #Waiting to get connection from other clients, we can terminate
-    #this while loop when all connections are sat up
-    
-    # ThreadCount = 0
-    # current = ord(c1.name) -64
-    # for i in range(0 ,4 - current):
-    #     index = ((current + i ) % 4 ) + 65
-    #     c1.clientSocekt[chr(index)], address = c1.ServerSocket.accept()
-    #     print('Connected to: ' + address[0] + ':' + str(address[1]))
-    #     # start_new_thread(c1.get_connection, (c1.clientSocekt[chr(index)], ))
-    #     ThreadCount += 1
-    #     print('Thread Number: ' + str(ThreadCount))
-        
-
-    # for item in c1.clientSocekt:
-    #     print(c1.clientSocekt[item])
-
-    # if c1.name == 'C':
-    #     c1.broadcast_to_all("hi everybody")
-
-
-    # for item in c1.clientSocekt:
-    #     if item != c1.name:
-    #         temp = c1.clientSocekt[item]
-    #         start_new_thread(c1.listening,(temp,))
 
     c1.startGUI()
     c1.ServerSocket.close()
