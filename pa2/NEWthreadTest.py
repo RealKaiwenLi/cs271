@@ -169,7 +169,7 @@ class myClient:
             if event == sg.WIN_CLOSED or event == 'Cancel': # if user closes window or clicks cancel
                 break
             if event == 'Snapshot':
-                self.init_snapshot()
+                start_new_thread(self.init_snapshot,())
             elif event == "Balance":
                 print(self.balance)
             else: # submit values[0] the reciver and values[1] for the amount
