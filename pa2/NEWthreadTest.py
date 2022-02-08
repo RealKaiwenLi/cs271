@@ -20,6 +20,7 @@ class myClient:
         self.broadcast_flag = False
         self.broadcast_msg = ""
         self.outgoing_channels_flag = False
+        self.counter = 1
         self.ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444}
         self.clinetIPs = {'A': '127.0.0.1', 'B': '127.0.0.1', 'C': '127.0.0.1', 'D': '127.0.0.1'}
@@ -69,11 +70,14 @@ class myClient:
             message_type = data.decode('utf-8').split()
             sender = self.get_client(int(addr[1]))
             if(message_type[0] == "Transfer"):
-                self.append_message(sender, data.decode('utf-8'))
-                self.balance += int(message_type[1])
+                if sender+self.name in self.channel[self.name].keys():    
+                    print(self.balance)
+                    self.append_message(sender, data.decode('utf-8'))
+                    self.balance += int(message_type[1])
+                    print(self.balance)
             elif message_type[0] == "MARKER":
-                self.recv_marker(sender, message_type[1])
-                pass
+                if sender+self.name in self.channel[self.name].keys(): 
+                    self.recv_marker(sender, message_type[1], int(message_type[2]))
             else:
                 # print(data.decode('utf-8'))
                 pass
@@ -99,7 +103,8 @@ class myClient:
         self.save_state(self.name)
         #send marker to all outgoing channels with initiator
         #TODO --> broadcast to all outgoing channel send a string "MARKER self.name"
-        self.send_outgoing_channels("MARKER " + self.name)
+        self.send_outgoing_channels("MARKER " + self.name + ' ' + str(self.counter))
+        self.counter += 1
         #start recording on all incoming channel
         self.incoming_channel[self.name] = {x:True for x in self.channel[self.name]}
         
@@ -109,12 +114,12 @@ class myClient:
                 return key
     
     # handle the state when receving a marker
-    def recv_marker(self, sender, initiator):
+    def recv_marker(self, sender, initiator, counter):
         if self.marker_num[initiator] == 0 and initiator != self.name:
             #save local state for this initiator
             self.save_state(initiator)
             #TODO "marker initiaior name" send marker to all outgoing channels
-            self.send_outgoing_channels("MARKER "+ initiator)
+            self.send_outgoing_channels("MARKER "+ initiator + ' ' + str(counter))
 
             self.marker_num[initiator] += 1
             #mark channel c is empty
@@ -170,15 +175,19 @@ class myClient:
             else: # submit values[0] the reciver and values[1] for the amount
                 TheReceiver = values[0]
                 amount = int(values[1])
+                print(self.balance)
                 if TheReceiver in self.outgoing_channels[self.name]:
+
                     if(amount > 0 and amount < self.balance):
                         self.balance -= amount
+            
                         self.send_direct_msg("Transfer " + str(amount), TheReceiver)
                         print("Success")
                     else:
-                        print("Incorrect")
+                        print("INSUFFICIENT BALANCE")
                 else:
-                    print("Incorrect")
+                    print("NOT CONNECTED")
+                print(self.balance)
                
 
         window.close()
