@@ -9,6 +9,7 @@ from copy import deepcopy
 from time import sleep
 import PySimpleGUI as sg
 import json
+from datetime import datetime
 
 class myClient:
     def __init__(self, clientName, clientIP, clientPort) -> None:
@@ -24,6 +25,7 @@ class myClient:
         self.sent_length = 0
         self.ack_length = 0
         self.ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.ServerSocket.settimeout(1)
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444, 'E': 5555}
         self.clinetIPs = '127.0.0.1'
 
@@ -44,8 +46,13 @@ class myClient:
         print(f'client {self.name} is listening now')
  
         while True:
-            data, addr = self.ServerSocket.recvfrom(1024) # buffer size is 1024 bytes
-            print(data.decode('utf-8'))
+            try:
+                data, addr = self.ServerSocket.recvfrom(1024) # buffer size is 1024 bytes
+                print(data.decode('utf-8'))
+            except socket.timeout:
+                #start election
+                continue
+
     
     def send_direct_msg(self, msg, receiver):
         sleep(3)
