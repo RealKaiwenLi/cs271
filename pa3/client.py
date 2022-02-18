@@ -11,10 +11,9 @@ import json
 from datetime import datetime
 
 class myClient:
-    def __init__(self, clientName, clientIP, clientPort) -> None:
+    def __init__(self, clientName) -> None:
         self.name = clientName
-        self.host = clientIP
-        self.port = clientPort
+        self.clinetIPs = '127.0.0.1'
         self.role = 'follower'
         self.currentTerm = 0
         self.currLeader = None
@@ -26,10 +25,10 @@ class myClient:
         self.ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ServerSocket.settimeout(2)
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444, 'E': 5555}
-        self.clinetIPs = '127.0.0.1'
+        
 
         try:
-            self.ServerSocket.bind((self.host, self.port))
+            self.ServerSocket.bind((self.clinetIPs, self.clientPorts[self.name]))
         except socket.error as e:
             print(str(e))
         time.sleep(5)
@@ -56,6 +55,7 @@ class myClient:
 
     def start_election(self):
         self.currentTerm += 1
+        self.votes_received += 1
         self.role = 'candidate'
         print("Set as candidate for term: ", self.currentTerm)
         #TODO:get the latest log
@@ -67,7 +67,7 @@ class myClient:
     
     def process_request_vote(self, msg):
         msg_list = msg.split(' ')
-        
+
         pass
         
     def broadcast_to_all(self, msg):
@@ -101,8 +101,7 @@ class myClient:
 if __name__ == "__main__":
      
     clientName = sys.argv[1]
-    thePorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444, 'E': 5555}
     print(f'The client name is "{clientName}"')
-    c1 = myClient(clientName, '127.0.0.1', thePorts[clientName])
+    c1 = myClient(clientName)
 
     c1.ServerSocket.close()
