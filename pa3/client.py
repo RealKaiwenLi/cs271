@@ -34,13 +34,44 @@ class myClient:
         except socket.error as e:
             print(str(e))
         time.sleep(5)
-        
+        start_new_thread(self.listen_to_all,())
+        while True:
+            continue
+    
+    def send_heartbeat(self):
+        while True:
+            if self.role == 'leader':
+                self.broadcast_to_all(f'heartbeat {self.name} {self.currentTerm}')
+                sleep(0.5)
+    
+    def get_last_log(self):
+        with open('A.txt') as f:
+            try:
+                for line in f:
+                    pass
+                last_line = line
+            except:
+                last_line = '0 0'
+            return last_line
 
+    def start_election(self):
+        self.currentTerm += 1
+        self.role = 'candidate'
+        print("Set as candidate for term: ", self.currentTerm)
+        #TODO:get the latest log
+        last_log = self.get_last_log()
+        #TODO:Generate RequestVote RPC
+        msg = f'RequestVote {self.name} {self.currentTerm} {last_log}'
+        #TODO:send request vote to all
+        self.broadcast_to_all(msg)
+    
+
+        
     def broadcast_to_all(self, msg):
         
         for item in self.clientPorts:
             if item != self.name:
-                self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs[item], self.clientPorts[item]))
+                self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs, self.clientPorts[item]))
                 
     def listen_to_all(self):
         print(f'client {self.name} is listening now')
@@ -50,8 +81,9 @@ class myClient:
                 data, addr = self.ServerSocket.recvfrom(1024) # buffer size is 1024 bytes
                 print(data.decode('utf-8'))
             except socket.timeout:
+                print('Timeout!')
                 #start election
-                continue
+                self.start_election()
 
     
     def send_direct_msg(self, msg, receiver):
@@ -69,6 +101,5 @@ if __name__ == "__main__":
     thePorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444, 'E': 5555}
     print(f'The client name is "{clientName}"')
     c1 = myClient(clientName, '127.0.0.1', thePorts[clientName])
-    start_new_thread(c1.listen_to_all,())
 
     c1.ServerSocket.close()
