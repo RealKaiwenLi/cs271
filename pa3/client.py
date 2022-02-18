@@ -5,7 +5,6 @@ import time
 import socket
 import os
 import sys
-from copy import deepcopy
 from time import sleep
 import PySimpleGUI as sg
 import json
@@ -25,7 +24,7 @@ class myClient:
         self.sent_length = 0
         self.ack_length = 0
         self.ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.ServerSocket.settimeout(1)
+        self.ServerSocket.settimeout(2)
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444, 'E': 5555}
         self.clinetIPs = '127.0.0.1'
 
@@ -34,6 +33,7 @@ class myClient:
         except socket.error as e:
             print(str(e))
         time.sleep(5)
+        start_new_thread(self.send_heartbeat, ())
         start_new_thread(self.listen_to_all,())
         while True:
             continue
@@ -45,7 +45,7 @@ class myClient:
                 sleep(0.5)
     
     def get_last_log(self):
-        with open('A.txt') as f:
+        with open(self.name + '.txt') as f:
             try:
                 for line in f:
                     pass
@@ -65,7 +65,10 @@ class myClient:
         #TODO:send request vote to all
         self.broadcast_to_all(msg)
     
-
+    def process_request_vote(self, msg):
+        msg_list = msg.split(' ')
+        
+        pass
         
     def broadcast_to_all(self, msg):
         
@@ -75,14 +78,14 @@ class myClient:
                 
     def listen_to_all(self):
         print(f'client {self.name} is listening now')
- 
         while True:
             try:
                 data, addr = self.ServerSocket.recvfrom(1024) # buffer size is 1024 bytes
                 print(data.decode('utf-8'))
+                if (data.decode('utf-8').split(' ')[0] == 'RequestVote'):
+                    self.process_request_vote(data.decode('utf-8'))
             except socket.timeout:
                 print('Timeout!')
-                #start election
                 self.start_election()
 
     
