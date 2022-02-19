@@ -20,13 +20,9 @@ class myClient:
         self.votedFor = None
         self.log = open(clientName + '.txt', 'a')
         self.votes_received = 0
-        self.sent_length = 0
-        self.ack_length = 0
         self.ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ServerSocket.settimeout(2)
         self.clientPorts = {'A': 1111, 'B': 2222, 'C': 3333, 'D': 4444, 'E': 5555}
-        
-
         try:
             self.ServerSocket.bind((self.clinetIPs, self.clientPorts[self.name]))
         except socket.error as e:
@@ -37,12 +33,14 @@ class myClient:
         while True:
             continue
     
+    #send heartbeat to all followers if I'm a leader
     def send_heartbeat(self):
         while True:
             if self.role == 'leader':
                 self.broadcast_to_all(f'heartbeat {self.name} {self.currentTerm}')
                 sleep(0.5)
     
+    #Get the last log entry
     def get_last_log(self):
         with open(self.name + '.txt') as f:
             try:
@@ -53,23 +51,22 @@ class myClient:
                 last_line = '0 0'
             return last_line
 
+    #start election
     def start_election(self):
         self.currentTerm += 1
         self.votes_received += 1
         self.role = 'candidate'
         print("Set as candidate for term: ", self.currentTerm)
-        #TODO:get the latest log
         last_log = self.get_last_log()
-        #TODO:Generate RequestVote RPC
+        #TODO: Is there any other parameter to send?
         msg = f'RequestVote {self.name} {self.currentTerm} {last_log}'
-        #TODO:send request vote to all
         self.broadcast_to_all(msg)
     
+    #TODO: things to do when receiving a vote
     def process_request_vote(self, msg):
         msg_list = msg.split(' ')
 
-        pass
-        
+
     def broadcast_to_all(self, msg):
         
         for item in self.clientPorts:
@@ -84,13 +81,13 @@ class myClient:
                 print(data.decode('utf-8'))
                 if (data.decode('utf-8').split(' ')[0] == 'RequestVote'):
                     self.process_request_vote(data.decode('utf-8'))
+            #timeout, start election
             except socket.timeout:
                 print('Timeout!')
                 self.start_election()
 
     
     def send_direct_msg(self, msg, receiver):
-        sleep(3)
         self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs[receiver], self.clientPorts[receiver]))
 
     def get_client(self,val):
