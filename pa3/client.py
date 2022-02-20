@@ -72,6 +72,9 @@ class myClient:
         for item in self.clientPorts:
             if item != self.name:
                 self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs, self.clientPorts[item]))
+        
+    def send_direct_msg(self, msg, receiver):
+        self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs[receiver], self.clientPorts[receiver]))
                 
     def listen_to_all(self):
         print(f'client {self.name} is listening now')
@@ -85,10 +88,6 @@ class myClient:
             except socket.timeout:
                 print('Timeout!')
                 self.start_election()
-
-    
-    def send_direct_msg(self, msg, receiver):
-        self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs[receiver], self.clientPorts[receiver]))
 
     def get_client(self,val):
         for key, value in self.clientPorts.items():
