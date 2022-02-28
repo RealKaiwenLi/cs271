@@ -5,8 +5,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
-def read_public (filename = "A_public.pem"):
-    with open("A_public.pem", "rb") as key_file:
+def read_public(filename):
+    with open(filename, "rb") as key_file:
         public_key = serialization.load_pem_public_key(
             key_file.read(),
             backend=default_backend()
@@ -28,5 +28,3 @@ def get_private_key(clientName):
             backend=default_backend()
         )
     return private_key
-
-get_private_key("A")

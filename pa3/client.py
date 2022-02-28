@@ -7,6 +7,7 @@ import PySimpleGUI as sg
 import json
 from datetime import datetime
 from crypto import *
+from group import *
 import random
 
 class myClient:
@@ -105,7 +106,6 @@ class myClient:
         return (term > int(log[1])) or (term == int(log[1]) and index >= int(log[0]))
     
     
-    #TODO: things to do when receiving a vote
     def process_request_vote(self, msg):
         msg_list = msg.split(' ')
         term = int(msg_list[2])
@@ -118,7 +118,6 @@ class myClient:
             self.send_direct_msg(f'Vote {self.name} {self.currentTerm}', msg_list[1])
 
     def broadcast_to_all(self, msg):
-        
         for item in self.clientPorts:
             if item != self.name:
                 self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs, self.clientPorts[item]))
@@ -157,6 +156,15 @@ class myClient:
             if val == value:
                 return key
     
+    def create_group(self, members):
+        group_id, private_key = create_new_group(self.name)
+        for member in members:
+            #encrypt group id and private key
+            #send to each member
+            pass
+        #append to log
+
+
 if __name__ == "__main__":
      
     clientName = sys.argv[1]
