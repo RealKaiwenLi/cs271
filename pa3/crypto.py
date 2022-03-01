@@ -28,3 +28,11 @@ def get_private_key(clientName):
             backend=default_backend()
         )
     return private_key
+
+def get_group_private_key(key):
+    private_key = serialization.load_pem_private_key(
+        key,
+        password=None,
+        backend=default_backend()
+    )
+    return private_key
