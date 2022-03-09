@@ -4,15 +4,15 @@ import json
 from jinja2 import MemcachedBytecodeCache
 
 
-public_key, private_key = rsa.newkeys(256)
+# public_key, private_key = rsa.newkeys(2048)
 
-# private key
-serial_private = private_key.save_pkcs1()
-with open('E_private.pem', 'wb') as f: f.write(serial_private)
+# # private key
+# serial_private = private_key.save_pkcs1()
+# with open('D_private.pem', 'wb') as f: f.write(serial_private)
     
-# public key
-serial_pub = public_key.save_pkcs1()
-with open('E_public.pem', 'wb') as f: f.write(serial_pub)
+# # public key
+# serial_pub = public_key.save_pkcs1()
+# with open('D_public.pem', 'wb') as f: f.write(serial_pub)
 
 #########      Private device only    ##########
 def read_private (filename = "A_private.pem"):

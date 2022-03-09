@@ -124,29 +124,34 @@ class myClient:
         print(f'client {self.name} is listening now')
         while True:
             try:
-                data, addr = self.ServerSocket.recvfrom(4096*4)
+                data, addr = self.ServerSocket.recvfrom(4096*10)
                 client = self.get_client(addr[1])
+                #use first byte to identify
+                # print(data[0:1])
                 if client not in self.fail_clients:
-                    if (data.decode('utf-8').split(' ')[0] == 'heartbeat'):
+                    if (data[0:1] == b'h'):
                         self.role = 'follower'
                         self.currLeader = client
                         self.currentTerm = max(int(data.decode('utf-8').split(' ')[2]), self.currentTerm)
 
-                    if (data.decode('utf-8').split(' ')[0] == 'RequestVote'):
+                    if (data[0:1] == b'R'):
                         print(data.decode('utf-8'))
                         self.process_request_vote(data.decode('utf-8'))
 
-                    if (data.decode('utf-8').split(' ')[0] == 'Vote'):
+                    if (data[0:1] == b'V'):
                         self.votes_received += 1
                         if self.votes_received > len(self.clientPorts) / 2 and self.role == 'candidate':
                             self.role = 'leader'
                             self.currLeader = self.name
                             print(f'I am the leader now')
                             self.ServerSocket.settimeout(None)
+                    
                     if (data.decode('utf-8').split(' ')[0] == 'redirect'):
+                        #TODO: rewrite decode part
                         msg = data.decode('utf-8')[9:]
                         self.process_event(msg)
                     if (data.decode('utf-8').split(' ')[0] == 'append'):
+                        #TODO: rewrite everything
                         append_msg = data.decode('utf-8').split('|||')[0][7:]
                         prev_msg = data.decode('utf-8').split('|||')[1]
                         if prev_msg == get_last_log(self.name):
