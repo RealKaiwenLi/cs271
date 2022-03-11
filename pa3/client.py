@@ -11,6 +11,7 @@ from group import *
 from read_log import *
 import random
 
+
 class myClient:
     def __init__(self, clientName) -> None:
         self.name = clientName
@@ -76,28 +77,23 @@ class myClient:
     def send_heartbeat(self):
         while True:
             if self.role == 'leader':
-                self.broadcast_to_all(f'heartbeat {self.name} {self.currentTerm}')
-
-    def append_to_log(self, msg):
-        with open(self.name + '.txt', 'a') as f:
-            f.write(msg)
-            f.write('\n')
+                self.broadcast_to_all(f'heartbeat {self.name} {self.currentTerm}'.encode())
 
     #start election
     def start_election(self):
         self.update_current_term(self.currentTerm + 1)
         self.role = 'candidate'
         print("Set as candidate for term: ", self.currentTerm)
-        last_log = get_last_log(self.name)
+        trm, idx = get_last_log(self.name)
+        last_log = f'{idx} {trm}'
         self.votes_received = 1
         self.update_voted_for(self.name)
         msg = f'RequestVote {self.name} {self.currentTerm} {last_log}'
-        self.broadcast_to_all(msg)
+        self.broadcast_to_all(msg.encode())
     
     def complete_log(self, index, term):
-        log = get_last_log(self.name).split(' ')
-        return (term > int(log[1])) or (term == int(log[1]) and index >= int(log[0]))
-    
+        trm, idx = get_last_log(self.name)
+        return (term > int(trm)) or ((term == int(trm)) and index >= int(idx))
     
     def process_request_vote(self, msg):
         msg_list = msg.split(' ')
@@ -108,17 +104,17 @@ class myClient:
             self.update_current_term(term)
             self.role = 'follower'
             self.update_voted_for(msg_list[1])
-            self.send_direct_msg(f'Vote {self.name} {self.currentTerm}', msg_list[1])
+            self.send_direct_msg(f'Vote {self.name} {self.currentTerm}'.encode(), msg_list[1])
 
     def broadcast_to_all(self, msg):
         for item in self.clientPorts:
             if item != self.name and item not in self.fail_clients:
-                self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs, self.clientPorts[item]))
+                self.ServerSocket.sendto(msg, (self.clinetIPs, self.clientPorts[item]))
                 sleep(0.5)
         
     def send_direct_msg(self, msg, receiver):
         if receiver not in self.fail_clients:
-            self.ServerSocket.sendto(str.encode(msg), (self.clinetIPs, self.clientPorts[receiver]))
+            self.ServerSocket.sendto(msg, (self.clinetIPs, self.clientPorts[receiver]))
                 
     def listen_to_all(self):
         print(f'client {self.name} is listening now')
@@ -146,99 +142,88 @@ class myClient:
                             print(f'I am the leader now')
                             self.ServerSocket.settimeout(None)
                     
-                    if (data.decode('utf-8').split(' ')[0] == 'redirect'):
-                        #TODO: rewrite decode part
-                        msg = data.decode('utf-8')[9:]
+                    if (data[0:1] == b'd'):
+                        msg = data[1:]
                         self.process_event(msg)
-                    if (data.decode('utf-8').split(' ')[0] == 'append'):
-                        #TODO: rewrite everything
-                        append_msg = data.decode('utf-8').split('|||')[0][7:]
-                        prev_msg = data.decode('utf-8').split('|||')[1]
-                        if prev_msg == get_last_log(self.name):
-                            self.append_to_log(append_msg)
-                        else:
-                            prev_index = int(prev_msg[0])
-                            msg = 'repair ' + str(prev_index)
-                            self.send_direct_msg(msg, self.currLeader)
-                    if (data.decode('utf-8').split(' ')[0] == 'repair'):
-                        index = int(data.decode('utf-8').split(' ')[1])
-                        msg = 'log ' + get_log_at(self.name, index)
-                        #send back the message
-                        pass
-                    if (data.decode('utf-8').split(' ')[0] == 'log'):
-                        msg = data.decode('utf-8').split(' ')[4:]
-                        if msg != 'finish':
-                            self.repair_log(msg)
+                    if (data[0:1] == b'a'):
+                        msg = data[1:]
+                        self.update_entries(msg)
 
             #timeout, start election
             except socket.timeout:
                 print('Timeout!')
                 self.start_election()
-    
-    def repair_log(self, msg):
-        msg = json.loads(msg)
-        prev_index = msg['prev'][0]
-        prev_log = get_log_at(self.name, prev_index)
-        if prev_log == msg['prev']:
-            #overwrite curr
-            #send next request
-            pass
-        else:
-            #repair the log
-            pass
 
     def get_client(self,val):
         for key, value in self.clientPorts.items():
             if val == value:
                 return key
-    
-    def process_event(self, msg):
-        last_log = get_last_log(self.name)
-        log_message = str(self.currentTerm) + ' ' + msg
-        self.append_to_log(log_message)
-        new_message = 'append ' + log_message + '|||' + last_log
-        self.broadcast_to_all(new_message)
 
-    #redirect first, then the leader broadcast it
+    def process_append_entries(self, msg):
+        print('entry appended!')
+        with open(self.name + '.txt', 'ab') as f:
+            f.write(msg)
+    
+    def update_entries(self, msg):
+        print('entry appended!')
+        with open(self.name + '.txt', 'wb') as f:
+            f.write(msg)
+
+    def process_event(self, msg):
+        self.process_append_entries(msg)
+        with open(self.name + '.txt', 'rb') as f:
+            msg = f.read()
+        tmp = [b'a', msg]
+        self.broadcast_to_all(b''.join(tmp))
 
     def create_group(self, members):
-        group_id, public_key, private_key = create_new_group(self.name)
-        for key,value in members.items():
-            pub_key = self.public_keys[key]
-            members[key] = encrypt_message(private_key, pub_key)
 
-        log_entry = f'create///{group_id}///{members}///{public_key}'
+        log_entry = encrypt_group_key(self.name, self.currentTerm, members, '0')
         if self.role == 'leader':
             self.process_event(log_entry)
         else:
-            self.send_direct_msg('redirect ' + log_entry, self.currLeader)
-        
+            tmp = [b'd', log_entry]
+            self.send_direct_msg(b''.join(tmp), self.currLeader)    
 
-    #TODO: kick a member
     def kick_member(self, group_id, member):
-        pass
-
-    #TODO: add a member
-    def add_member(self, group_id, member):
-        member_list = member.split(',')
-        members = {x:None for x in member_list}
-        for key,value in members.items():
-            pub_key = self.public_keys[key]
-            # members[key] = encrypt_message(private_key, pub_key)
-        log_entry = f'create///{group_id}///{members}'
-        if self.role == 'leader':
-            self.process_event(log_entry)
+        log = kick_member(self.name, self.currentTerm, group_id, member)
+        print(f"kick {member} from group {group_id}")
+        if type(log) == str:
+            print(log)
         else:
-            self.send_direct_msg('redirect ' + log_entry, self.currLeader)
+            print(f'add {member} to group {group_id}')
+            if self.role == 'leader':
+                self.process_event(log)
+            else:
+                tmp = [b'd', log]
+                self.send_direct_msg(b''.join(tmp), self.currLeader)
+
+    def add_member(self, group_id, member):
+        log = add_member(self.name, self.currentTerm, group_id, member)
+        if type(log) == str:
+            print(log)
+        else:
+            print(f'add {member} to group {group_id}')
+            if self.role == 'leader':
+                self.process_event(log)
+            else:
+                tmp = [b'd', log]
+                self.send_direct_msg(b''.join(tmp), self.currLeader)
         
 
-    #TODO: print a groups
     def print_groups(self, group_id):
-        pass
+        group = read_message(self.name, group_id)
+        print(f'members: {group["members"].keys()}\n messages: {group["messages"]}')
 
     #TODO: write message to a group
     def write_message(self, group_id, message):
-        pass
+        log = write_message(self.name, self.currentTerm, group_id, message)
+        print(f'write {message} to group {group_id}')
+        if self.role == 'leader':
+            self.process_event(log)
+        else:
+            tmp = [b'd', log]
+            self.send_direct_msg(b''.join(tmp), self.currLeader)
 
     
     def startGUI(self):
@@ -256,6 +241,7 @@ class myClient:
                     [sg.Text('Group_id: '), sg.InputText(do_not_clear=False, size=(5,5), key='id3'), sg.Button('Print Group')],
                     [sg.Text('Group_id: '), sg.InputText(do_not_clear=False, size=(5,5), key='id4'),sg.Text("Message: "), sg.InputText(do_not_clear=False, key='mes'), sg.Button('Write Message')],
                     [sg.Text('Client: '), sg.InputText(do_not_clear=False, size=(5,5), key='c3'), sg.Button('FailLink')],
+                    [sg.Text('Client: '), sg.InputText(do_not_clear=False, size=(5,5), key='c4'), sg.Button('FixLink')],
                 ]
 
         # Create the Window
@@ -266,10 +252,11 @@ class myClient:
             if event == sg.WIN_CLOSED or event == 'Cancel': # if user closes window or clicks cancel
                 break
             if event == 'Create Group':
-                members = {self.name: None}
+                members = self.name
                 for c in clients:
                     if c != self.name and values[c] == True:
-                        members[c] = None
+                        members += c
+                
                 self.create_group(members)
             if event == 'Kick':
                 group_id = values['id1']
@@ -283,6 +270,7 @@ class myClient:
 
             if event == 'Print Group':
                 group_id = values['id3']
+                print('print group', group_id)
                 self.print_groups(group_id)
                 
             if event == 'Write Message':
@@ -294,6 +282,11 @@ class myClient:
                 client_id = values['c3']
                 if client_id != self.name and client_id not in self.fail_clients:
                     self.fail_clients.append(client_id)
+            
+            if event == 'FixLink':
+                client_id = values['c4']
+                if client_id != self.name and client_id in self.fail_clients:
+                    self.fail_clients.remove(client_id)
 
         window.close()
 
