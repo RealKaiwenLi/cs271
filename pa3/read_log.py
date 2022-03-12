@@ -48,10 +48,3 @@ def get_log_at(name, num):
         except:
             return "finish"
 
-
-lines = ""
-with open('A.txt', 'rb') as f:
-    lines = f.read()
-
-# print(len(lines))
-# print(get_next_term('A'))

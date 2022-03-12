@@ -123,11 +123,12 @@ class myClient:
                 data, addr = self.ServerSocket.recvfrom(4096*10)
                 client = self.get_client(addr[1])
                 #use first byte to identify
-                # print(data[0:1])
                 if client not in self.fail_clients:
                     if (data[0:1] == b'h'):
                         self.role = 'follower'
                         self.currLeader = client
+                        if self.currentTerm > int(data.decode('utf-8').split(' ')[2]):
+                            self.send_direct_msg(f'g {self.currentTerm} {self.currLeader}'.encode(), self.currLeader)
                         self.currentTerm = max(int(data.decode('utf-8').split(' ')[2]), self.currentTerm)
 
                     if (data[0:1] == b'R'):
@@ -148,6 +149,14 @@ class myClient:
                     if (data[0:1] == b'a'):
                         msg = data[1:]
                         self.update_entries(msg)
+                    
+                    if (data[0:1] == b'g'):
+                        msg = data.decode().split(' ')
+                        if self.role != 'follower':
+                            print('step down')
+                            self.role = 'follower'
+                            self.currentTerm = int(msg[1])
+                            self.currLeader = msg[2]
 
             #timeout, start election
             except socket.timeout:
@@ -215,7 +224,6 @@ class myClient:
         group = read_message(self.name, group_id)
         print(f'members: {group["members"].keys()}\n messages: {group["messages"]}')
 
-    #TODO: write message to a group
     def write_message(self, group_id, message):
         log = write_message(self.name, self.currentTerm, group_id, message)
         print(f'write {message} to group {group_id}')
@@ -225,7 +233,6 @@ class myClient:
             tmp = [b'd', log]
             self.send_direct_msg(b''.join(tmp), self.currLeader)
 
-    
     def startGUI(self):
         sg.theme('DarkAmber')   # Add a touch of color
         # All the stuff inside your window.

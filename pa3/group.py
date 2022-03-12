@@ -146,8 +146,8 @@ def write_message(client, term, group_num, message):
 # log = write_message('E','A0','Hlo2')
 # with open('A.txt', 'ab') as f:
 #     f.write(log)
-res = read_message("D","A0")
-print(res['messages'])
+# res = read_message("D","A0")
+# print(res['messages'])
 
 
 
